@@ -52,8 +52,15 @@
       margin: 5px 0;
     }
     #response {
-      white-space: pre-wrap; /* 전송 결과 JSON 등을 보기 좋게 */
+      white-space: pre-wrap;
       margin: 10px 0;
+    }
+    #nextButton {
+      margin-top: 10px;
+      padding: 8px;
+      cursor: pointer;
+      background-color: #eee;
+      border: 1px solid #000;
     }
   </style>
 </head>
@@ -94,7 +101,7 @@
 </div>
 
 <!-- 에너지바(문제별 타이머 시각화) -->
-<div class="energy-bar" id="energyBar" >
+<div class="energy-bar" id="energyBar">
   <div class="energy-fill" id="energyFill"></div>
 </div>
 
@@ -103,6 +110,7 @@
   <div class="question-block" id="questionText"></div>
   <div class="choices" id="choicesContainer"></div>
   <div id="feedback"></div>
+  <button id="nextButton" class="hidden">다음문제</button>
 </div>
 
 <!-- 게임 종료 메시지 -->
@@ -116,35 +124,25 @@
 
 <script>
 /*
-  * 문제 배열 (확인용 문제 제거 후, 33문항)
-  * choices: 4지선다 (고정 순서)
-  * answer: 정답의 인덱스 (0~3)
+  * 문제 배열 – 계산이 지나치게 복잡하거나 중복되는 문제는 삭제하였습니다.
+  * 각 문제는 4지선다(choices의 순서는 고정)이며, answer는 정답 버튼의 인덱스(0~3)입니다.
 */
 const allProblems = [
   {
     question: "복소수 \\(\\dfrac{5 + 3i}{2}\\), \\(\\dfrac{5 - 3i}{2}\\)일 때, \\(x^3 + x^2y + xy^2 + y^3\\)의 값을 구하시오.",
     choices: ["36","38","40","42"],
-    answer: 2 // 40
+    answer: 2
   },
   {
     question: "복소수 \\(z = 2 - i\\)일 때, \\(z\\,\\overline{z}\\,(z + \\overline{z})\\)의 값을 구하시오.",
     choices: ["16","18","20","25"],
-    answer: 2 // 20
+    answer: 2
   },
   {
-    question: "복소수 \\(x = 1 + \\sqrt{2}\\,i,\\; y = 1 - \\sqrt{2}\\,i\\)일 때, \\(x^2 y - 3x^2 - xy^2 + 3y^2\\)의 값을 구하시오.",
-    choices: [
-      "\\(-4\\sqrt{2}i\\)",
-      "\\(-5\\sqrt{2}i\\)",
-      "\\(-6\\sqrt{2}i\\)",
-      "\\(-7\\sqrt{2}i\\)"
-    ],
-    answer: 2 // -6 sqrt(2)i
-  },
-  {
+    // 원래 문제 중 계산이 복잡한 문제는 삭제함 (예: 원래 3번 문제)
     question: "복소수 \\(z = 3 + 4i\\)일 때, \\(z\\,\\overline{z}\\)의 값을 구하시오.",
     choices: ["9","16","25","32"],
-    answer: 2 // 25
+    answer: 2
   },
   {
     question: "복소수 \\(z = 1 + 3i\\)일 때, \\(\\dfrac{z}{\\overline{z}} + \\dfrac{\\overline{z}}{z}\\) 을 구하시오.",
@@ -154,17 +152,17 @@ const allProblems = [
       "\\(-\\dfrac{7}{5}\\)",
       "\\(-\\dfrac{9}{5}\\)"
     ],
-    answer: 1 // -8/5
+    answer: 1
   },
   {
     question: "복소수 \\(x = 1 + 2i\\), \\(y = 2 - i\\)일 때, \\((x+y)(\\overline{x+y})\\)의 값을 구하시오.",
     choices: ["8","9","10","11"],
-    answer: 2 // 10
+    answer: 2
   },
   {
     question: "복소수 \\(x = 2 + i\\), \\(y = 2 - i\\)일 때, \\(x^2 + y^2\\)의 값을 구하시오.",
     choices: ["2","4","6","8"],
-    answer: 2 // 6
+    answer: 2
   },
   {
     question: "복소수 \\(x = -2i\\), \\(y = i - 2\\)일 때, \\(x^2 + y^2\\)의 값을 구하시오.",
@@ -174,22 +172,22 @@ const allProblems = [
       "\\(3 - 4i\\)",
       "\\(3 + 4i\\)"
     ],
-    answer: 0 // -1 - 4i
+    answer: 0
   },
   {
     question: "복소수 \\(x = 2 + 2i\\), \\(y = 3 + i\\)일 때, \\((x+y)(\\overline{x+y})\\)의 값을 구하시오.",
     choices: ["26","28","34","36"],
-    answer: 2 // 34
+    answer: 2
   },
   {
     question: "복소수 \\(x = \\dfrac{1 - \\sqrt{7}i}{2}\\), \\(y = \\dfrac{1 + \\sqrt{7}i}{2}\\)일 때, \\(x^3 + y^3\\)의 값을 구하시오.",
     choices: ["\\(-7\\)","\\(-6\\)","\\(-5\\)","\\(-4\\)"],
-    answer: 2 // -5
+    answer: 2
   },
   {
     question: "복소수 \\(x = 2 + i\\), \\(y = 2 - i\\)일 때, \\(x^3 + y^3 - 3xy\\)의 값을 구하시오.",
     choices: ["\\(-13\\)","\\(-11\\)","\\(-9\\)","\\(-7\\)"],
-    answer: 1 // -11
+    answer: 1
   },
   {
     question: "복소수 \\(x = 2 + i\\), \\(y = 2 - i\\)일 때, \\(\\dfrac{1}{x} + \\dfrac{1}{y}\\)의 값을 구하시오.",
@@ -199,57 +197,57 @@ const allProblems = [
       "\\(\\dfrac{6}{5}\\)",
       "\\(\\dfrac{7}{5}\\)"
     ],
-    answer: 1 // 4/5
+    answer: 1
   },
   {
     question: "복소수 \\((4 + x i)(2 - 3i)\\)가 실수가 되도록 하는 \\(x\\)의 값은?",
     choices: ["4","5","6","7"],
-    answer: 2 // 6
+    answer: 2
   },
   {
     question: "복소수 \\((4 + 2i)(x - 4i)\\)가 실수가 되도록 하는 \\(x\\)의 값은?",
     choices: ["6","7","8","9"],
-    answer: 2 // 8
+    answer: 2
   },
   {
-    question: "\\(-(1 - 2x i)(3 - 4i)\\)가 실수가 되도록 하는 \\(x\\)의 값은?",
+    question: "복소수 \\(-(1 - 2x i)(3 - 4i)\\)가 실수가 되도록 하는 \\(x\\)의 값은?",
     choices: [
       "\\(-1\\)",
       "\\(-\\dfrac{2}{3}\\)",
       "\\(-\\dfrac{1}{2}\\)",
       "1"
     ],
-    answer: 1 // -2/3
+    answer: 1
   },
   {
-    question: "\\((1 - 2i)x^2 - (3 + i)x - 4 + 3i\\)가 실수가 되도록 하는 \\(x\\)의 값은?\n(두 해)",
+    question: "\\((1 - 2i)x^2 - (3 + i)x - 4 + 3i\\)가 실수가 되도록 하는 \\(x\\)의 값은? (두 해)",
     choices: [
       "\\(1,\\; -\\dfrac{3}{2}\\)",
       "\\(\\dfrac{3}{2},\\; -1\\)",
       "\\(-1,\\; 2\\)",
       "\\(\\dfrac{1}{2},\\; -3\\)"
     ],
-    answer: 0 // x=1, -3/2
+    answer: 0
   },
   {
-    question: "\\((1 - i)x^2 - 3x + 2 + 4i\\)가 실수가 되도록 하는 \\(x\\)의 값은?\n(두 해)",
+    question: "\\((1 - i)x^2 - 3x + 2 + 4i\\)가 실수가 되도록 하는 \\(x\\)의 값은? (두 해)",
     choices: [
       "\\(\\pm 1\\)",
       "\\(\\pm 2\\)",
       "\\(\\pm 3\\)",
       "\\(\\pm 4\\)"
     ],
-    answer: 1 // ±2
+    answer: 1
   },
   {
-    question: "\\((1 + i)x^2 - (4 - i)x + 3 - 2i\\)가 실수가 되도록 하는 \\(x\\)의 값은?\n(두 해)",
+    question: "\\((1 + i)x^2 - (4 - i)x + 3 - 2i\\)가 실수가 되도록 하는 \\(x\\)의 값은? (두 해)",
     choices: [
       "1, -2",
       "2, -1",
       "-1, -2",
       "1, 2"
     ],
-    answer: 0 // x=1, -2
+    answer: 0
   },
   {
     question: "복소수 \\((4 + 2i)(x - 4i)\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
@@ -259,19 +257,10 @@ const allProblems = [
       "0",
       "2"
     ],
-    answer: 0 // -2
+    answer: 0
   },
   {
-    question: "\\(-(1 - 2x i)(3 - 4i)\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
-    choices: [
-      "\\(\\dfrac{1}{2}\\)",
-      "\\(\\dfrac{3}{8}\\)",
-      "\\(-\\dfrac{3}{8}\\)",
-      "\\(-\\dfrac{1}{2}\\)"
-    ],
-    answer: 1 // 3/8
-  },
-  {
+    // 중복되거나 계산 조건이 유사한 문제 중 하나만 남김 (순허수 조건)
     question: "\\((1 + i)x^2 - (1 + 2i)x - 6 - 3i\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
     choices: [
       "\\(-2\\)",
@@ -279,7 +268,7 @@ const allProblems = [
       "2",
       "3"
     ],
-    answer: 0 // -2
+    answer: 0
   },
   {
     question: "\\((1 + i)x^2 - (3 + i)x + 2(1 - i)\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
@@ -289,7 +278,7 @@ const allProblems = [
       "-1",
       "-2"
     ],
-    answer: 0 // 1
+    answer: 0
   },
   {
     question: "\\(x(3 - i) + 2(-3 + 2i)\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
@@ -299,12 +288,12 @@ const allProblems = [
       "3",
       "-2"
     ],
-    answer: 1 // 2
+    answer: 1
   },
   {
     question: "\\((1 - i)x^2 + (2 - i)x - 3 + 6i\\)가 순허수가 되도록 하는 \\(x\\)의 값은?",
     choices: ["-3","-1","1","3"],
-    answer: 2 // 1
+    answer: 2
   },
   {
     question: "복소수 \\(z = 2 - i\\)일 때, \\(\\dfrac{1}{z} + \\dfrac{1}{\\overline{z}}\\) 의 값을 구하시오.",
@@ -314,42 +303,42 @@ const allProblems = [
       "\\(\\dfrac{4}{5}\\)",
       "\\(\\dfrac{6}{5}\\)"
     ],
-    answer: 2 // 4/5
+    answer: 2
   },
   {
     question: "복소수 \\(z = 3 + 2i\\)일 때, \\(z^2 + \\overline{z}^2\\)의 값을 구하시오.",
     choices: ["8","9","10","12"],
-    answer: 2 // 10
+    answer: 2
   },
   {
     question: "\\(i^9\\)의 값을 구하시오.",
     choices: ["1","-1","i","-i"],
-    answer: 2 // i
+    answer: 2
   },
   {
     question: "\\(i^{18}\\)의 값을 구하시오.",
     choices: ["1","-1","i","-i"],
-    answer: 1 // -1
+    answer: 1
   },
   {
     question: "\\((-i)^9\\)의 값을 구하시오.",
     choices: ["i","-i","1","-1"],
-    answer: 1 // -i
+    answer: 1
   },
   {
     question: "\\((-i)^{50}\\)의 값을 구하시오.",
     choices: ["1","-1","i","-i"],
-    answer: 1 // -1
+    answer: 1
   },
   {
     question: "\\(i^{100} + i^{101}\\)의 값을 구하시오.",
     choices: ["0","1","i","1 + i"],
-    answer: 3 // 1 + i
+    answer: 3
   },
   {
     question: "\\(i^{100} + i^{-200}\\)의 값을 구하시오.",
     choices: ["1","2","-1","-2"],
-    answer: 1 // 2
+    answer: 1
   },
   {
     question: "\\(\\dfrac{1}{i} + \\dfrac{1}{i^2}\\) 의 값을 구하시오.",
@@ -359,12 +348,12 @@ const allProblems = [
       "\\(1 - i\\)",
       "\\(1 + i\\)"
     ],
-    answer: 0 // -1 - i
+    answer: 0
   },
   {
     question: "\\(\\left(\\dfrac{1}{i}\\right)^{13}\\)의 값을 구하시오.",
     choices: ["i","-i","1","-1"],
-    answer: 1 // -i
+    answer: 1
   }
 ];
 
@@ -387,7 +376,7 @@ const difficultyScoreMap = {
   "medium": 13,
   "easy": 10
 };
-// 난이도별 시간
+// 난이도별 시간 (easy는 제한시간 없음)
 const difficultyTimeMap = {
   "hardest": 20,
   "hard": 30,
@@ -396,7 +385,6 @@ const difficultyTimeMap = {
 };
 
 function shuffleArray(arr) {
-  // 문제 순서만 섞기 위해 사용 (choices는 섞지 않음)
   for (let i = arr.length - 1; i > 0; i--) {
     const r = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[r]] = [arr[r], arr[i]];
@@ -407,18 +395,15 @@ function startGame() {
   const difficulty = document.getElementById("difficulty-select").value;
   initialTimeLimit = difficultyTimeMap[difficulty];
   
-  // 문제 전체 섞기 (단, choices는 고정)
   problems = [...allProblems];
   shuffleArray(problems);
 
-  // 점수/시간/기회 초기화
   score = 0;
   lives = 3;
   document.getElementById("score").textContent = score;
   document.getElementById("lives").textContent = lives;
   isGameOver = false;
 
-  // 전체 진행 시간 측정
   startTime = Date.now();
   if (totalTimeInterval) clearInterval(totalTimeInterval);
   totalTimeInterval = setInterval(updateTotalTime, 1000);
@@ -430,7 +415,6 @@ function startGame() {
   loadProblem();
 }
 
-// 전체 시간 표시 갱신
 function updateTotalTime() {
   const now = Date.now();
   const elapsedSec = Math.floor((now - startTime) / 1000);
@@ -442,28 +426,27 @@ function loadProblem() {
     endGame();
     return;
   }
-  // 문제를 모두 소진하면 다시 섞어 무한출제
   if (currentIndex >= problems.length) {
     shuffleArray(problems);
     currentIndex = 0;
   }
 
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("nextButton").classList.add("hidden");
+
   const p = problems[currentIndex];
   document.getElementById("questionText").innerHTML = p.question;
   
-  // *** choices는 순서 고정: p.choices[i], i=0..3
   const choicesContainer = document.getElementById("choicesContainer");
   choicesContainer.innerHTML = "";
   for (let i = 0; i < p.choices.length; i++) {
     const btn = document.createElement("button");
     btn.innerHTML = p.choices[i];
-    btn.onclick = () => checkAnswer(i, p.answer); // 직접 index 비교
+    btn.onclick = () => checkAnswer(i, p.answer);
     choicesContainer.appendChild(btn);
   }
 
-  document.getElementById("feedback").innerText = "";
   MathJax.typeset(); 
-
   setupEnergyBar();
 }
 
@@ -472,7 +455,6 @@ function setupEnergyBar() {
 
   const difficulty = document.getElementById("difficulty-select").value;
   if (difficultyTimeMap[difficulty] === Infinity) {
-    // 하(제한시간 없음)
     document.getElementById("energyFill").style.width = "0%";
     document.getElementById("energyBar").style.display = "none";
     return;
@@ -502,49 +484,57 @@ function updateEnergyBar() {
   document.getElementById("energyFill").style.width = Math.max(ratio, 0) + "%";
 }
 
+function disableChoiceButtons() {
+  const buttons = document.getElementById("choicesContainer").children;
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].disabled = true;
+  }
+}
+
 function loseLifeByTimeout() {
   clearInterval(questionTimer);
   lives--;
   document.getElementById("lives").textContent = lives;
+  document.getElementById("feedback").innerText = "시간 초과!";
+  disableChoiceButtons();
   if (lives <= 0) {
     endGame();
     return;
   }
-  currentIndex++;
-  loadProblem();
+  showNextButton();
 }
 
-// 정답 체크 (직접 index 비교)
 function checkAnswer(selectedIndex, correctIndex) {
   if (isGameOver) return;
+  disableChoiceButtons();
+  clearInterval(questionTimer);
 
   if (selectedIndex === correctIndex) {
-    // 정답
     const difficulty = document.getElementById("difficulty-select").value;
     score += difficultyScoreMap[difficulty];
     document.getElementById("score").textContent = score;
-    clearInterval(questionTimer);
-    currentIndex++;
-    loadProblem();
+    document.getElementById("feedback").innerText = "정답입니다!";
   } else {
-    // 오답
     lives--;
     document.getElementById("lives").textContent = lives;
-    const fb = document.getElementById("feedback");
-    // 정답 표시
-    fb.innerText = "틀렸습니다! 정답: " + 
-      (document.getElementById("choicesContainer").children[correctIndex].innerHTML);
+    document.getElementById("feedback").innerText = "틀렸습니다! 정답: " + 
+      document.getElementById("choicesContainer").children[correctIndex].innerHTML;
     if (lives <= 0) {
       endGame();
-    } else {
-      clearInterval(questionTimer);
-      // 잠시 후 다음 문제
-      setTimeout(() => {
-        currentIndex++;
-        loadProblem();
-      }, 1500);
+      return;
     }
   }
+  showNextButton();
+}
+
+function showNextButton() {
+  document.getElementById("nextButton").classList.remove("hidden");
+}
+
+function nextProblem() {
+  document.getElementById("nextButton").classList.add("hidden");
+  currentIndex++;
+  loadProblem();
 }
 
 function endGame() {
@@ -595,6 +585,10 @@ async function saveData(game, name, score, elapsedTime) {
 // 이벤트 리스너
 document.getElementById("start-button").addEventListener("click", () => {
   startGame();
+});
+
+document.getElementById("nextButton").addEventListener("click", () => {
+  nextProblem();
 });
 
 document.getElementById("submitScore").addEventListener("click", () => {
